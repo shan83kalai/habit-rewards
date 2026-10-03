@@ -148,6 +148,49 @@ final class HabitRewardsUITests: XCTestCase {
     }
 
     @MainActor
+    func testParentCanChooseTheAppIcon() throws {
+        let app = launchApp()
+        app.tabBars.buttons["Settings"].tap()
+
+        let pound = app.buttons["Pound coin"]
+        for _ in 0..<8 where !pound.isHittable {
+            app.swipeUp()
+        }
+        pound.tap()
+        dismissIconChangedAlert(in: app)
+        XCTAssertTrue(waitUntilSelected(pound))
+
+        // Put the main icon back, so later runs on this simulator start from it. iOS ignores a change
+        // made while it's still finishing the last one, so try again if it didn't take.
+        let star = app.buttons["Star coin"]
+        for _ in 0..<3 where !star.isSelected {
+            star.tap()
+            dismissIconChangedAlert(in: app)
+            _ = waitUntilSelected(star)
+        }
+        XCTAssertTrue(star.isSelected)
+    }
+
+    @MainActor
+    private func waitUntilSelected(_ element: XCUIElement) -> Bool {
+        let selected = expectation(for: NSPredicate(format: "isSelected == true"), evaluatedWith: element)
+        return XCTWaiter.wait(for: [selected], timeout: 5) == .completed
+    }
+
+    /// iOS confirms every icon change with its own alert.
+    @MainActor
+    private func dismissIconChangedAlert(in app: XCUIApplication) {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for alerts in [app.alerts, springboard.alerts] {
+            let ok = alerts.buttons["OK"]
+            if ok.waitForExistence(timeout: 3) {
+                ok.tap()
+                return
+            }
+        }
+    }
+
+    @MainActor
     func testParentCanTypeAReward() throws {
         let app = launchApp()
         app.tabBars.buttons["Settings"].tap()

@@ -75,6 +75,7 @@ private struct SettingsForm: View {
             ChildrenSection { editor = .child($0) }
             FamilySharingSection { familyRequest = $0 }
             ReminderSection { notice = .notificationsOff }
+            AppIconSection()
             BackupSection { backupRequest = $0 }
             Section {
                 Button("Lock parent settings", systemImage: "lock.fill") { parentLock.lock() }

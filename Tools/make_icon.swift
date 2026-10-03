@@ -1,9 +1,11 @@
-// Draws the 1024×1024 app icon: the children's purple→orange gradient, a white tick, and a gold £ coin.
-// Run: swift make_icon.swift <output.png>
+// Draws a 1024×1024 app icon: the children's purple→orange gradient, a white tick, and a gold coin.
+// The coin shows a star (the main icon) or a currency symbol (the alternate icons parents can choose).
+// Run: make_icon <output.png> [symbol]
 import AppKit
 
 let size: CGFloat = 1024
 let output = CommandLine.arguments.dropFirst().first ?? "AppIcon.png"
+let symbol = CommandLine.arguments.dropFirst(2).first ?? "★"
 
 func colour(_ hex: UInt32, alpha: CGFloat = 1) -> NSColor {
     NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
@@ -39,7 +41,7 @@ colour(0xFFFFFF).setStroke()
 tick.stroke()
 context.restoreGState()
 
-// Gold coin with a £.
+// Gold coin.
 let coinCentre = NSPoint(x: 735, y: 265)
 let coinRadius: CGFloat = 175
 context.saveGState()
@@ -55,12 +57,30 @@ colour(0xC98A00, alpha: 0.45).setStroke()
 inner.lineWidth = 6
 inner.stroke()
 
-let pound = NSAttributedString(string: "£", attributes: [
-    .font: NSFont.systemFont(ofSize: 230, weight: .heavy),
-    .foregroundColor: colour(0x8A5300),
-])
-let poundSize = pound.size()
-pound.draw(at: NSPoint(x: coinCentre.x - poundSize.width / 2, y: coinCentre.y - poundSize.height / 2 + 6))
+if symbol == "★" {
+    // Drawn as a path: crisper than any font's star.
+    let star = NSBezierPath()
+    for point in 0..<10 {
+        let radius: CGFloat = point.isMultiple(of: 2) ? 108 : 46
+        let angle = CGFloat.pi / 2 + CGFloat(point) * .pi / 5
+        let corner = NSPoint(x: coinCentre.x + radius * cos(angle), y: coinCentre.y - 4 + radius * sin(angle))
+        point == 0 ? star.move(to: corner) : star.line(to: corner)
+    }
+    star.close()
+    star.lineJoinStyle = .round
+    star.lineWidth = 14
+    colour(0x8A5300).setFill()
+    colour(0x8A5300).setStroke()
+    star.fill()
+    star.stroke()
+} else {
+    let text = NSAttributedString(string: symbol, attributes: [
+        .font: NSFont.systemFont(ofSize: 230, weight: .heavy),
+        .foregroundColor: colour(0x8A5300),
+    ])
+    let textSize = text.size()
+    text.draw(at: NSPoint(x: coinCentre.x - textSize.width / 2, y: coinCentre.y - textSize.height / 2 + 6))
+}
 
 NSGraphicsContext.restoreGraphicsState()
 

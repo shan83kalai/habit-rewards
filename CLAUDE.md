@@ -47,11 +47,14 @@ The iOS 26.5 and 27.0 simulator runtimes are installed. Include `OS=` in the des
 
 The project uses file-system-synchronised groups: new files in `HabitRewards/`, `Shared/`, `HabitRewardsWidget/`, `HabitRewardsTests/` or `HabitRewardsUITests/` join their target automatically, with no `project.pbxproj` edits. `Shared/` belongs to both the app and the widget targets. Each target's `Info.plist` is excluded from its folder's membership.
 
-The app icon is drawn by `Tools/make_icon.swift`. To redraw it, run `xcrun swiftc -o /tmp/make_icon Tools/make_icon.swift && /tmp/make_icon HabitRewards/Assets.xcassets/AppIcon.appiconset/AppIcon.png`. The `swift` script runner crashes on this file, so compile it instead.
+The app icon is drawn by `Tools/make_icon.swift`: the gradient, the tick, and a gold coin with a star (the main icon) or a currency symbol. Compile it with `xcrun swiftc -o /tmp/make_icon Tools/make_icon.swift`; the `swift` script runner crashes on it. Then run `/tmp/make_icon <out.png> [symbol]`; the symbol defaults to ★.
+- The main icon is `AppIcon` (★). Parents can switch to `AppIcon-GBP`, `-USD`, `-EUR`, `-INR` or `-JPY` in Settings → App icon (`AppIconSection`, `AppIconChoice`).
+- To add a coin: add its `AppIcon-<code>.appiconset`, plus an `IconPreview-<code>.imageset` at 180 px (the picker can't load app icon sets as images). Add the name to `ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES` in both app configurations, and add a case to `AppIconChoice`.
+- `docs/icon.png` is the star icon at 180 px.
 
 ## Release (TestFlight)
 
-App Store Connect app: "Habit Rewards Family". Build 1.0 (1) was uploaded 2026-10-02, and 1.0 (2) on 2026-10-03 (generic starter data, any currency). For each new upload, raise `CURRENT_PROJECT_VERSION` in all 8 configurations first; App Store Connect refuses a repeated build number. Then:
+App Store Connect app: "Habit Rewards Family". Build 1.0 (1) was uploaded 2026-10-02, 1.0 (2) on 2026-10-03 (generic starter data, any currency), and 1.0 (3) on 2026-10-03 (star icon with currency coins to choose, Settings label fix). For each new upload, raise `CURRENT_PROJECT_VERSION` in all 8 configurations first; App Store Connect refuses a repeated build number. Then:
 
 ```bash
 xcodebuild archive -project HabitRewards.xcodeproj -scheme HabitRewards -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/HabitRewards.xcarchive -allowProvisioningUpdates

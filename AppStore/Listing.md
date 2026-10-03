@@ -1,0 +1,83 @@
+# App Store listing: Habit Rewards Family
+
+Text to paste into App Store Connect → Habit Rewards Family → the **1.0 Prepare for Submission** page and **App Information**. The character counts are checked against Apple's limits.
+
+## App Information
+
+| Field | Value |
+|---|---|
+| Name | Habit Rewards Family |
+| Subtitle (30) | Daily habits into pocket money |
+| Category | Primary: **Lifestyle**. Secondary: **Productivity** |
+| Content rights | Doesn't contain, show or access third-party content |
+| Age rating | Answer **None / No** to every question → 4+. Not "Made for Kids": the app is for parents. |
+| Privacy Policy URL | https://shan83kalai.github.io/habit-rewards/privacy.html |
+
+## Version 1.0
+
+| Field | Value |
+|---|---|
+| Support URL | https://shan83kalai.github.io/habit-rewards/support.html |
+| Marketing URL | https://shan83kalai.github.io/habit-rewards/ |
+| Copyright | 2026 Shan Nagarajan |
+| Screenshots | `AppStore/Screenshots/` (1–4), in the **6.9" iPhone** slot. Apple scales them for smaller iPhones. |
+| Build | 1.0 (3) |
+
+**Promotional text (170):**
+
+> Tick your children's habits each day and watch them turn into pocket money. Share with the other parent, in your own currency.
+
+**Keywords (100):**
+
+> chores,allowance,kids,reward chart,habit tracker,family,parents,routine,star chart,money,goals
+
+**Description:**
+
+> Turn your children's daily habits into pocket money.
+>
+> Habit Rewards Family is a simple habit tracker for parents. Tick each child's habits every day, done or missed, and the app works out what they've earned. At the end of the month, the total is ready to pay.
+>
+> HOW IT WORKS
+> • Each habit done earns a reward, and each habit missed takes a little off.
+> • A day never goes below zero, and the month adds up by itself.
+> • You choose the habits and the amounts. Changes apply from this month on, and earlier months keep theirs.
+>
+> SEE THE WHOLE MONTH
+> • A month grid for each child, like a paper chart.
+> • Perfect days, best streaks, and the best and most-missed habits.
+> • Mark the month as paid, and export it as a spreadsheet (CSV) or PDF.
+>
+> BOTH PARENTS, ONE FAMILY
+> • Share with the other parent through iCloud, even if you use different Apple IDs. Both phones stay in step.
+>
+> PARENT CONTROLS
+> • Settings, payments and earlier months are protected by Face ID or your passcode.
+>
+> ALSO
+> • Home-screen and Lock Screen widgets with today's totals.
+> • A daily reminder.
+> • Amounts in your own currency, and an app icon with your currency's coin.
+> • Back up to Files, and restore.
+>
+> PRIVATE BY DESIGN
+> No accounts, no ads, no tracking. Your family's data stays on your phone, and in your own iCloud if you share.
+
+## App Privacy
+
+**Data Not Collected.** The developer receives nothing. Data stored in the user's own iCloud through CloudKit doesn't count as collected.
+
+## App Review Information
+
+- Sign-in required: **No**
+- Contact: your name, phone and email (only Apple's reviewers see them)
+- Notes:
+
+> No sign-in is needed. Everything works on one device.
+>
+> Parent settings (the Settings tab, payments and earlier months) unlock with Face ID or the device passcode. On a device without a passcode they open freely.
+>
+> Family sharing is optional and needs a second device signed into a different iCloud account: Settings → Share with the other parent → Add Participant, then open the link on the second device and tap Join. The app uses the user's own private and shared CloudKit databases; there is no server.
+
+## Pricing and availability
+
+Free, in all countries and regions.

@@ -227,6 +227,30 @@ final class HabitRewardsUITests: XCTestCase {
         attachScreenshot(of: app, named: "9 Settings habits")
     }
 
+    @MainActor
+    func testParentCanGiveAHabitToOneChild() throws {
+        let app = launchApp()
+        app.tabBars.buttons["Settings"].tap()
+
+        let homework = app.buttons["Homework"]
+        scroll(app, until: homework)
+        homework.tap()
+        let firstChild = app.buttons["Child 1"]
+        XCTAssertTrue(firstChild.waitForExistence(timeout: 2))
+        XCTAssertTrue(firstChild.isSelected)
+        firstChild.tap() // Untick: now just for Child 2.
+        XCTAssertFalse(firstChild.isSelected)
+        attachScreenshot(of: app, named: "10 Habit for one child")
+        app.buttons["Save"].tap()
+        XCTAssertTrue(element(in: app, labelContaining: "Child 2 only").waitForExistence(timeout: 2))
+
+        app.tabBars.buttons["Today"].tap()
+        XCTAssertTrue(app.buttons["Reading"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["Homework"].exists)
+        app.buttons["Child 2"].tap()
+        XCTAssertTrue(app.buttons["Homework"].waitForExistence(timeout: 2))
+    }
+
     // MARK: - Polish: export, backup, reminder, accessibility
 
     @MainActor

@@ -10,6 +10,7 @@ struct RulesSection: View {
     @Environment(\.modelContext) private var context
     @Query private var savedRules: [MonthRules]
     @Query(filter: #Predicate<Habit> { $0.isActive }) private var activeHabits: [Habit]
+    @Query(filter: #Predicate<Child> { !$0.isArchived }, sort: \Child.sortOrder) private var children: [Child]
 
     var body: some View {
         let thisMonth = navigation.currentMonth
@@ -20,7 +21,7 @@ struct RulesSection: View {
             Text("This month · \(name(of: thisMonth))")
                 .foregroundStyle(.subtle)
         } footer: {
-            Text("Best day: \(Money.format(bestDay(in: thisMonth))). Changes apply to all of \(name(of: thisMonth)). Earlier months keep their own amounts.")
+            Text("\(bestDay(in: thisMonth)) Changes apply to all of \(name(of: thisMonth)). Earlier months keep their own amounts.")
                 .foregroundStyle(.subtle)
         }
         Section {
@@ -60,8 +61,26 @@ struct RulesSection: View {
         month.firstDay(in: navigation.calendar).formatted(.dateTime.month(.wide))
     }
 
-    private func bestDay(in month: CalendarMonth) -> Int {
-        ScoringEngine(rules: MonthRules.rules(for: month, from: savedRules)).dayScore(done: activeHabits.count, missed: 0)
+    private func bestDay(in month: CalendarMonth) -> String {
+        BestDay.summary(rules: MonthRules.rules(for: month, from: savedRules), activeHabits: activeHabits, children: children)
+    }
+}
+
+/// The most a child can earn in a day: every one of their habits done.
+enum BestDay {
+    /// "Best day: £3.00." or, when the children have different habits,
+    /// "Best day: Maya £3.00, Leo £2.00."
+    static func summary(rules: ScoringRules, activeHabits: [Habit], children: [Child]) -> String {
+        let engine = ScoringEngine(rules: rules)
+        let amounts = children.map { child in
+            (name: child.name, pence: engine.dayScore(done: activeHabits.filter { $0.isFor(child) }.count, missed: 0))
+        }
+        guard let first = amounts.first, amounts.contains(where: { $0.pence != first.pence }) else {
+            let pence = amounts.first?.pence ?? engine.dayScore(done: activeHabits.count, missed: 0)
+            return String(localized: "Best day: \(Money.format(pence)).")
+        }
+        let list = amounts.map { "\($0.name) \(Money.format($0.pence))" }.formatted(.list(type: .and, width: .narrow))
+        return String(localized: "Best day: \(list).")
     }
 }
 

@@ -59,6 +59,7 @@ final class SyncTests: SwiftDataTestCase {
         let (phoneA, children, habits) = try makePhone()
         children[1].isArchived = true
         habits[2].isActive = false
+        habits[3].childIDs = [children[1].id]
         let entry = try DayEntry.upsert(child: children[0], habit: habits[2], date: day(2), status: .missed, in: phoneA, calendar: london)
         let rules = MonthRules(year: 2026, month: 10, rules: ScoringRules(rewardPence: 60, penaltyPence: 80))
         phoneA.insert(rules)
@@ -76,6 +77,8 @@ final class SyncTests: SwiftDataTestCase {
         let habitsB = try phoneB.fetch(FetchDescriptor<Habit>(sortBy: [SortDescriptor(\.sortOrder)]))
         XCTAssertEqual(habitsB.map(\.title), habits.map(\.title))
         XCTAssertFalse(habitsB[2].isActive)
+        XCTAssertEqual(habitsB[3].childIDs, [children[1].id])
+        XCTAssertEqual(habitsB[0].childIDs, [])
         XCTAssertEqual(MonthRules.rules(for: CalendarMonth(year: 2026, month: 10), from: try phoneB.fetch(FetchDescriptor<MonthRules>())), ScoringRules(rewardPence: 60, penaltyPence: 80))
 
         let entryB = try XCTUnwrap(phoneB.fetch(FetchDescriptor<DayEntry>()).first)
@@ -121,6 +124,18 @@ final class SyncTests: SwiftDataTestCase {
         try SyncApplier.apply([remote], deletions: [], to: context, calendar: london)
         XCTAssertEqual(children[0].name, "Maya")
         XCTAssertFalse(children[0].hasUnsyncedChanges)
+    }
+
+    func testAHabitGoingBackToEveryoneArrivesAsEveryone() throws {
+        // CloudKit hands back an empty list as no value at all, as do records from older versions.
+        let (context, _, habits) = try makePhone()
+        habits[0].childIDs = [UUID()]
+        let remote = habits[0].cloudRecord(in: zone)
+        remote["childIDs"] = nil
+        remote["modifiedAt"] = later
+
+        try SyncApplier.apply([remote], deletions: [], to: context, calendar: london)
+        XCTAssertEqual(habits[0].childIDs, [])
     }
 
     func testUnsentLocalChangeThatIsNewerWins() throws {

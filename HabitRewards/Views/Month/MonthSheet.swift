@@ -41,10 +41,10 @@ struct MonthSheet {
         let rows = habits
             .sorted { $0.sortOrder < $1.sortOrder }
             .compactMap { habit -> Row? in
-                // Inactive habits get a row only in months where they were ticked.
+                // Habits that are off, or not this child's, get a row only in months they were ticked.
                 let statuses = statusesByHabit[habit.id] ?? blank
                 let usedThisMonth = statuses.contains { $0 != .unset }
-                return habit.isActive || usedThisMonth ? Row(habit: habit, statuses: statuses) : nil
+                return (habit.isActive && habit.isFor(child)) || usedThisMonth ? Row(habit: habit, statuses: statuses) : nil
             }
 
         // Score each day up to today; later days stay nil (locked).
@@ -58,7 +58,7 @@ struct MonthSheet {
             dayScores[index] = score
             runningTotals[index] = runningTotal
 
-            let counted = rows.filter { $0.habit.counts(withStatus: $0.statuses[index]) }
+            let counted = rows.filter { $0.habit.counts(for: child, withStatus: $0.statuses[index]) }
             perfect.append(MonthStats.isPerfectDay(counted.map { $0.statuses[index] }))
         }
 

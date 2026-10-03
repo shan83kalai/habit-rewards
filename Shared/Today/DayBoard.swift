@@ -31,7 +31,7 @@ struct DayBoard {
             .sorted { $0.sortOrder < $1.sortOrder }
             .compactMap { habit in
                 let status = statusByHabit[habit.id] ?? .unset
-                return habit.counts(withStatus: status) ? Row(habit: habit, status: status) : nil
+                return habit.counts(for: child, withStatus: status) ? Row(habit: habit, status: status) : nil
             }
         dayPence = engine.dayScore(dayEntries.map(\.status))
         monthPence = engine.monthTotal(entries: monthEntries.map { (day: calendar.startOfDay(for: $0.date), status: $0.status) })

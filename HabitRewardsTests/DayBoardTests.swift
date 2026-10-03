@@ -118,6 +118,29 @@ final class DayBoardTests: SwiftDataTestCase {
         XCTAssertEqual(dayTotals, [300, 175, 250])
     }
 
+    func testAHabitForOneChildOnlyShowsForThem() throws {
+        try seed()
+        let exercise = habits[5]
+        exercise.childIDs = [secondChild.id]
+
+        let first = try board(firstChild, day(10, 2))
+        XCTAssertEqual(first.rows.count, 5)
+        XCTAssertFalse(first.rows.contains { $0.habit === exercise })
+        XCTAssertTrue(try board(secondChild, day(10, 2)).rows.contains { $0.habit === exercise })
+    }
+
+    func testTakingAHabitAwayFromAChildKeepsTheirTicks() throws {
+        try seed()
+        let exercise = habits[5]
+        try DayEntry.upsert(child: firstChild, habit: exercise, date: day(10, 1), status: .done, in: context, calendar: london)
+        exercise.childIDs = [secondChild.id]
+
+        let dayWithEntry = try board(firstChild, day(10, 1))
+        XCTAssertTrue(dayWithEntry.rows.contains { $0.habit === exercise })
+        XCTAssertEqual(dayWithEntry.dayPence, 50)
+        XCTAssertFalse(try board(firstChild, day(10, 2)).rows.contains { $0.habit === exercise })
+    }
+
     func testInactiveHabitIsHiddenUnlessItHasAnEntryThatDay() throws {
         try seed()
         let exercise = habits[5]

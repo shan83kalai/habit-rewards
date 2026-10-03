@@ -9,6 +9,8 @@ final class Habit: Syncable {
     var sortOrder: Int = 0
     /// Inactive habits are hidden from new days but keep their history.
     var isActive: Bool = true
+    /// The children it's for. Empty means every child, including ones added later.
+    var childIDs: [UUID] = []
 
     // Sync bookkeeping: see `Syncable`.
     var modifiedAt: Date = Date.distantPast
@@ -24,10 +26,16 @@ final class Habit: Syncable {
         self.sortOrder = sortOrder
     }
 
-    /// Whether the habit counts on a day it has this status: always if active, otherwise
-    /// only if it was ticked that day, so its history still shows and adds up.
-    func counts(withStatus status: HabitStatus) -> Bool {
-        isActive || status != .unset
+    /// Whether it's one of this child's habits: for everyone, or chosen for them.
+    func isFor(_ child: Child) -> Bool {
+        childIDs.isEmpty || childIDs.contains(child.id)
+    }
+
+    /// Whether the habit counts for a child on a day it has this status: always if it's active and
+    /// one of theirs, otherwise only if it was ticked that day. Turning a habit off, or taking it
+    /// away from a child, never changes their history.
+    func counts(for child: Child, withStatus status: HabitStatus) -> Bool {
+        (isActive && isFor(child)) || status != .unset
     }
 
     var cloudRecordName: String { "habit-\(id.uuidString)" }

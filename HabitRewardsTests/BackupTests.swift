@@ -27,6 +27,7 @@ final class BackupTests: SwiftDataTestCase {
             try DayEntry.upsert(child: children[1], habit: habit, date: day(10, 1), status: index < 3 ? .done : .unset, in: context, calendar: london)
         }
         habits[5].isActive = false
+        habits[4].childIDs = [children[1].id]
         children[1].colourHex = "#14B8A6"
         try MonthRules.set(.standard, for: october.previous, in: context)
         try MonthRules.set(ScoringRules(rewardPence: 60, penaltyPence: 80), for: october, in: context)
@@ -85,7 +86,10 @@ final class BackupTests: SwiftDataTestCase {
         XCTAssertEqual(children.map(\.name), ["Child 1", "Child 2", "Cousin"])
         XCTAssertEqual(children[1].colourHex, "#14B8A6")
         XCTAssertTrue(children[2].isArchived)
-        XCTAssertFalse(try fresh.fetch(FetchDescriptor<Habit>(sortBy: [SortDescriptor(\.sortOrder)]))[5].isActive)
+        let habits = try fresh.fetch(FetchDescriptor<Habit>(sortBy: [SortDescriptor(\.sortOrder)]))
+        XCTAssertFalse(habits[5].isActive)
+        XCTAssertEqual(habits[4].childIDs, [children[1].id])
+        XCTAssertEqual(habits[0].childIDs, [])
 
         let payout = try XCTUnwrap(fresh.fetch(FetchDescriptor<Payout>()).first)
         XCTAssertTrue(payout.child === children[0])
@@ -161,6 +165,18 @@ final class BackupTests: SwiftDataTestCase {
         XCTAssertEqual(json["version"] as? Int, Backup.currentVersion)
         let entries = try XCTUnwrap(json["entries"] as? [[String: Any]])
         XCTAssertTrue(entries.contains { $0["day"] as? String == "2026-09-30" && $0["status"] as? String == "done" })
+    }
+
+    func testVersionOneBackupRestoresEveryHabitForEveryone() throws {
+        // Version 1 files have no childIDs.
+        let data = try Backup.make(from: try makeFamily(), calendar: london).encoded()
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        json["version"] = 1
+        json["habits"] = try XCTUnwrap(json["habits"] as? [[String: Any]]).map { $0.filter { $0.key != "childIDs" } }
+        let fresh = try makeContext()
+        try Backup.decode(try JSONSerialization.data(withJSONObject: json)).restore(into: fresh, calendar: london)
+
+        XCTAssertTrue(try fresh.fetch(FetchDescriptor<Habit>()).allSatisfy { $0.childIDs.isEmpty })
     }
 
     // MARK: - Bad files

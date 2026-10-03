@@ -9,13 +9,25 @@ struct HabitsSection: View {
 
     @Environment(\.modelContext) private var context
     @Query(sort: \Habit.sortOrder) private var habits: [Habit]
+    @Query(filter: #Predicate<Child> { !$0.isArchived }, sort: \Child.sortOrder) private var children: [Child]
 
     var body: some View {
         Section {
             ForEach(habits) { habit in
                 Button { edit(habit) } label: {
                     HStack {
-                        Label(habit.title, systemImage: habit.sfSymbol)
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(habit.title)
+                                if let caption = HabitAudience.caption(for: habit, children: children) {
+                                    Text(caption)
+                                        .font(.caption)
+                                        .foregroundStyle(.subtle)
+                                }
+                            }
+                        } icon: {
+                            Image(systemName: habit.sfSymbol)
+                        }
                         Spacer()
                         if !habit.isActive {
                             Text("Off")

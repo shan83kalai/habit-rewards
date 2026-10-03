@@ -3,7 +3,8 @@ import SwiftData
 
 /// Everything in the app as one JSON file, for backing up through the Files app and restoring.
 nonisolated struct Backup: Codable, Equatable, Sendable {
-    static let currentVersion = 1
+    /// 2 added `HabitRecord.childIDs`.
+    static let currentVersion = 2
 
     struct ChildRecord: Codable, Equatable, Sendable {
         var id: UUID
@@ -19,6 +20,8 @@ nonisolated struct Backup: Codable, Equatable, Sendable {
         var sfSymbol: String
         var sortOrder: Int
         var isActive: Bool
+        /// The children it's for; missing for habits that are for everyone, and in version 1 files.
+        var childIDs: [UUID]?
     }
 
     struct RulesRecord: Codable, Equatable, Sendable {
@@ -103,7 +106,7 @@ extension Backup {
                 ChildRecord(id: $0.id, name: $0.name, colourHex: $0.colourHex, sortOrder: $0.sortOrder, isArchived: $0.isArchived)
             },
             habits: try context.fetch(FetchDescriptor<Habit>(sortBy: [SortDescriptor(\.sortOrder)])).map {
-                HabitRecord(id: $0.id, title: $0.title, sfSymbol: $0.sfSymbol, sortOrder: $0.sortOrder, isActive: $0.isActive)
+                HabitRecord(id: $0.id, title: $0.title, sfSymbol: $0.sfSymbol, sortOrder: $0.sortOrder, isActive: $0.isActive, childIDs: $0.childIDs.isEmpty ? nil : $0.childIDs)
             },
             monthRules: try context.fetch(FetchDescriptor<MonthRules>()).map {
                 RulesRecord(year: $0.year, month: $0.month, rewardPence: $0.rewardPence, penaltyPence: $0.penaltyPence)
@@ -142,6 +145,7 @@ extension Backup {
                 let habit = Habit(title: record.title, sfSymbol: record.sfSymbol, sortOrder: record.sortOrder)
                 habit.id = record.id
                 habit.isActive = record.isActive
+                habit.childIDs = record.childIDs ?? []
                 context.insert(habit)
                 habitsByID[record.id] = habit
             }

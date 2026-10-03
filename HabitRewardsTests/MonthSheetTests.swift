@@ -142,6 +142,17 @@ final class MonthSheetTests: SwiftDataTestCase {
         XCTAssertEqual(try sheet(firstChild, month: CalendarMonth(year: 2026, month: 9)).rows.count, 6)
     }
 
+    func testHabitForAnotherChildOnlyShowsInMonthsTheyTickedIt() throws {
+        try seed()
+        let exercise = habits[5]
+        try DayEntry.upsert(child: firstChild, habit: exercise, date: day(9, 15), status: .done, in: context, calendar: london)
+        exercise.childIDs = [secondChild.id]
+
+        XCTAssertEqual(try sheet(firstChild).rows.count, 5)
+        XCTAssertEqual(try sheet(firstChild, month: CalendarMonth(year: 2026, month: 9)).rows.count, 6)
+        XCTAssertEqual(try sheet(secondChild).rows.count, 6)
+    }
+
     // MARK: - Summary stats
 
     func testPerfectDaysAndBestStreak() throws {
@@ -167,6 +178,18 @@ final class MonthSheetTests: SwiftDataTestCase {
         habits[5].isActive = false
         try set(firstChild, [.done, .done, .done, .done, .done], on: day(10, 1))
         XCTAssertEqual(try sheet(firstChild).perfectDays, 1)
+    }
+
+    func testEachChildsPerfectDayNeedsOnlyTheirOwnHabits() throws {
+        try seed()
+        habits[5].childIDs = [secondChild.id]
+        // Five done is perfect for the first child; the second child also has the sixth habit.
+        try set(firstChild, [.done, .done, .done, .done, .done], on: day(10, 1))
+        try set(secondChild, [.done, .done, .done, .done, .done], on: day(10, 1))
+
+        XCTAssertEqual(try sheet(firstChild).perfectDays, 1)
+        XCTAssertEqual(try sheet(secondChild).perfectDays, 0)
+        XCTAssertEqual(try sheet(firstChild).total, 250)
     }
 
     func testBestAndMostMissedHabits() throws {

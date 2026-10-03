@@ -76,6 +76,8 @@ extension Habit: CloudRecordConvertible {
         record["sfSymbol"] = sfSymbol
         record["sortOrder"] = sortOrder
         record["isActive"] = isActive
+        // No value, rather than an empty list, means every child.
+        record["childIDs"] = childIDs.isEmpty ? nil : childIDs.map(\.uuidString)
     }
 
     func decode(from record: CKRecord) {
@@ -83,6 +85,9 @@ extension Habit: CloudRecordConvertible {
         sfSymbol = record["sfSymbol"] as? String ?? sfSymbol
         sortOrder = record["sortOrder"] as? Int ?? sortOrder
         isActive = record["isActive"] as? Bool ?? isActive
+        // CloudKit returns an empty list as no value, and older versions never set it: both mean
+        // every child, so a missing value can't keep this phone's old choice.
+        childIDs = (record["childIDs"] as? [String] ?? []).compactMap(UUID.init(uuidString:))
     }
 }
 

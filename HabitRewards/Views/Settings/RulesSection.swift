@@ -85,7 +85,9 @@ private struct MoneyStepper: View {
             HStack {
                 Text(title)
                 Spacer()
-                TextField(title, text: $text)
+                // A short placeholder: the field sizes itself to it, and the title would squeeze the label.
+                TextField(Money.format(0), text: $text)
+                    .accessibilityLabel(Text(title))
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .monospacedDigit()

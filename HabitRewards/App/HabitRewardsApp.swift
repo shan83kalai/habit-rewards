@@ -19,7 +19,9 @@ struct HabitRewardsApp: App {
             }
             // A phone in a family gets its children and habits from iCloud. Seeding here would make
             // duplicates if it restarted before they arrived.
-            if !FamilySync.shared.isSharing {
+            if isRunningTests && process.arguments.contains("-demoData") {
+                try DemoData.load(into: container.mainContext)
+            } else if !FamilySync.shared.isSharing {
                 try SeedData.seedIfNeeded(container.mainContext)
             }
         } catch {

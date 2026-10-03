@@ -58,6 +58,8 @@ xcodebuild archive -project HabitRewards.xcodeproj -scheme HabitRewards -configu
 xcodebuild -exportArchive -archivePath /tmp/HabitRewards.xcarchive -exportOptionsPlist Tools/ExportOptions.plist -exportPath /tmp/HabitRewardsExport -allowProvisioningUpdates
 ```
 
+App Store screenshots: `AppStore/Screenshots/`, made by `AppStoreScreenshots` (UI tests) from a demo family (`DemoData`, loaded only with `-uiTesting -demoData`). It's skipped unless `TEST_RUNNER_SCREENSHOTS=1`. Run it alone on the iPhone 18 Pro Max simulator (1320 × 2868, the 6.9-inch size) with `-parallel-testing-enabled NO`, after `xcrun simctl status_bar <udid> override --time 9:41 --batteryState charged --batteryLevel 100`, then export the attachments.
+
 `Tools/ExportOptions.plist` uploads straight to App Store Connect, using Apple-managed distribution signing through the Xcode account. On export, Xcode switches `aps-environment` and the iCloud environment to production. **Before any upload that adds or changes a synced field or record type,** deploy the CloudKit schema from Development to Production in the CloudKit Console; otherwise release builds can't save the new fields. TestFlight builds expire after 90 days.
 
 ## Where data lives

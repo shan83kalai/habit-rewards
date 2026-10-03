@@ -3,6 +3,7 @@
 An iPhone app for parents. Tick each child's daily habits, and the app turns them into pocket money.
 
 - Each habit done earns a reward, and each habit missed takes off a penalty. A day never goes below zero, and the month adds up.
+- Habits can be for some children only, and one-off extra tasks earn their own reward on the day.
 - Month grid, payments, CSV and PDF export, a home-screen widget, and daily reminders.
 - Optional sharing between both parents' iPhones through their own iCloud (CloudKit), even with different Apple IDs.
 - No accounts, ads, analytics or tracking.

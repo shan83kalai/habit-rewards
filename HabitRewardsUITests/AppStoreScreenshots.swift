@@ -13,15 +13,29 @@ final class AppStoreScreenshots: XCTestCase {
         XCTAssertTrue(app.buttons["Homework"].waitForExistence(timeout: 5))
         snap("1 Today")
 
+        // Further down Today: Maya's extra task.
+        app.swipeUp()
+        XCTAssertTrue(app.buttons["Add extra task"].waitForExistence(timeout: 2))
+        snap("2 Extra tasks")
+
         app.tabBars.buttons["Month"].tap()
         app.buttons["Previous month"].tap()
-        snap("2 Month")
+        snap("3 Month")
 
         app.tabBars.buttons["Summary"].tap()
-        snap("3 Summary")
+        snap("4 Summary")
 
         app.tabBars.buttons["Settings"].tap()
-        snap("4 Settings")
+        snap("5 Settings")
+
+        // The habit that's just Maya's, open in the editor to show who it's for.
+        let tidyRoom = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Tidy room")).firstMatch
+        for _ in 0..<4 where !tidyRoom.isHittable {
+            app.swipeUp()
+        }
+        tidyRoom.tap()
+        XCTAssertTrue(app.navigationBars["Edit habit"].waitForExistence(timeout: 3))
+        snap("6 Habit for some children")
     }
 
     @MainActor

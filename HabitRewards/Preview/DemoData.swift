@@ -11,6 +11,10 @@ enum DemoData {
         for (child, name) in zip(children, ["Maya", "Leo"]) {
             child.name = name
         }
+        // One habit that's just Maya's, to show habits can be for some children only.
+        if let maya = children.first, habits.count > 4 {
+            habits[4].childIDs = [maya.id]
+        }
 
         let thisMonth = CalendarMonth(containing: today, calendar: calendar)
         let lastMonth = thisMonth.previous
@@ -22,18 +26,19 @@ enum DemoData {
             var lastMonthTotal = 0
             for (dayIndex, day) in days.enumerated() {
                 let statuses = habits.indices.map { status(child: childIndex, day: dayIndex, habit: $0) }
-                for (habit, status) in zip(habits, statuses) {
+                let theirs = zip(habits, statuses).filter { $0.0.isFor(child) }
+                for (habit, status) in theirs {
                     try DayEntry.upsert(child: child, habit: habit, date: day, status: status, in: context, calendar: calendar)
                 }
                 if CalendarMonth(containing: day, calendar: calendar) == lastMonth {
-                    lastMonthTotal += engine.dayScore(statuses)
+                    lastMonthTotal += engine.dayScore(theirs.map(\.1))
                 }
             }
             // Today, half way through, with something still to do.
             let todays: [HabitStatus] = childIndex == 0
                 ? [.done, .done, .missed, .done, .done, .unset]
                 : [.done, .missed, .done, .unset, .done, .unset]
-            for (habit, status) in zip(habits, todays) where status != .unset {
+            for (habit, status) in zip(habits, todays) where status != .unset && habit.isFor(child) {
                 try DayEntry.upsert(child: child, habit: habit, date: today, status: status, in: context, calendar: calendar)
             }
             if childIndex == 0 {

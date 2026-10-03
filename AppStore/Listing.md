@@ -25,7 +25,7 @@ Text to paste into App Store Connect for **version 1.1 (build 5)**. The characte
 | Support URL | https://shan83kalai.github.io/habit-rewards/support.html |
 | Marketing URL | https://shan83kalai.github.io/habit-rewards/ |
 | Copyright | 2026 Shan Nagarajan |
-| Screenshots | All six in `AppStore/Screenshots/`, in order, in the **6.9" iPhone** slot. Apple scales them for smaller iPhones. |
+| Screenshots | All six from `AppStore/Screenshots/6.5-inch/` (1284 × 2778), in order, in the **6.5" Display** slot, which is the required one. Apple scales them for other iPhones. The 1320 × 2868 originals are in `AppStore/Screenshots/`. |
 | Build | 1.1 (5) |
 
 **What's New (updates only):**

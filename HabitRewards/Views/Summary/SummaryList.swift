@@ -13,6 +13,7 @@ struct SummaryList: View {
     @Query private var savedRules: [MonthRules]
     @Query private var monthEntries: [DayEntry]
     @Query private var payouts: [Payout]
+    @Query private var monthExtras: [ExtraTask]
 
     @State private var saveFailed = false
 
@@ -27,6 +28,7 @@ struct SummaryList: View {
         let monthNumber = month.month
         _monthEntries = Query(filter: #Predicate<DayEntry> { $0.date >= start && $0.date < end })
         _payouts = Query(filter: #Predicate<Payout> { $0.year == year && $0.month == monthNumber })
+        _monthExtras = Query(filter: #Predicate<ExtraTask> { $0.date >= start && $0.date < end })
     }
 
     var body: some View {
@@ -34,7 +36,7 @@ struct SummaryList: View {
         let sheets = children.map { child in
             (child: child, sheet: MonthSheet(
                 child: child, month: month, today: navigation.today, habits: habits,
-                entries: monthEntries, rules: rules, calendar: navigation.calendar
+                entries: monthEntries, extraTasks: monthExtras, rules: rules, calendar: navigation.calendar
             ))
         }
         VStack(spacing: 16) {

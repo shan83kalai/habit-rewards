@@ -8,7 +8,7 @@ Family sharing keeps both parents' phones in step through iCloud, even when the 
 - The sharing parent's phone (the owner) creates a "Family" zone in their **private** iCloud database and shares the whole zone. The invited parent sees it in their **shared** database.
 - Each phone runs a `CKSyncEngine` on its side. Code: `HabitRewards/Sync/FamilySync.swift`.
 - Every record has a fixed name, so two phones always write to the same record and never create duplicates:
-  - children, habits and payouts use their IDs;
+  - children, habits, payouts and extra tasks use their IDs;
   - rules are named by month (`rules-2026-10`);
   - ticks are named by child + day + habit.
 - When both phones change the same record, the newer change wins. The merge logic is in `HabitRewards/Sync/SyncApplier.swift` and is unit-tested in `SyncTests`.

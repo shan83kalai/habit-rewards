@@ -13,6 +13,10 @@ struct MonthSheet {
     let month: CalendarMonth
     let days: [Date]
     let rows: [Row]
+    /// What each day's done extra tasks add; 0 for days without any.
+    let extrasByDay: [Int]
+    /// The child's extra tasks this month, by day and then the order they were set.
+    let extraTasks: [ExtraTask]
     /// `nil` for days after today.
     let dayScores: [Int?]
     let runningTotals: [Int?]
@@ -24,8 +28,10 @@ struct MonthSheet {
     /// Where today is in `days`, if it's this month.
     let todayIndex: Int?
 
-    /// - Parameter entries: Any entries; only this child's entries in `month` are used.
-    init(child: Child, month: CalendarMonth, today: Date, habits: [Habit], entries: [DayEntry], rules: ScoringRules, calendar: Calendar = .current) {
+    /// - Parameters:
+    ///   - entries: Any entries; only this child's entries in `month` are used.
+    ///   - extraTasks: Any tasks; likewise only this child's in `month`.
+    init(child: Child, month: CalendarMonth, today: Date, habits: [Habit], entries: [DayEntry], extraTasks: [ExtraTask] = [], rules: ScoringRules, calendar: Calendar = .current) {
         let engine = ScoringEngine(rules: rules)
         let days = month.days(in: calendar)
         let startOfToday = calendar.startOfDay(for: today)
@@ -47,13 +53,21 @@ struct MonthSheet {
                 return (habit.isActive && habit.isFor(child)) || usedThisMonth ? Row(habit: habit, statuses: statuses) : nil
             }
 
+        let tasks = ExtraTask.tasks(for: child, in: extraTasks).filter { dayIndex[calendar.startOfDay(for: $0.date)] != nil }
+        var extrasByDay = Array(repeating: 0, count: days.count)
+        for task in tasks {
+            if let index = dayIndex[calendar.startOfDay(for: task.date)] {
+                extrasByDay[index] += task.earnedPence
+            }
+        }
+
         // Score each day up to today; later days stay nil (locked).
         var dayScores = [Int?](repeating: nil, count: days.count)
         var runningTotals = [Int?](repeating: nil, count: days.count)
         var perfect: [Bool] = []
         var runningTotal = 0
         for index in days.indices where days[index] <= startOfToday {
-            let score = engine.dayScore(rows.map { $0.statuses[index] })
+            let score = engine.dayScore(rows.map { $0.statuses[index] }, extrasPence: extrasByDay[index])
             runningTotal += score
             dayScores[index] = score
             runningTotals[index] = runningTotal
@@ -68,6 +82,8 @@ struct MonthSheet {
         self.month = month
         self.days = days
         self.rows = rows
+        self.extrasByDay = extrasByDay
+        self.extraTasks = tasks
         self.dayScores = dayScores
         self.runningTotals = runningTotals
         self.total = runningTotal
@@ -77,6 +93,10 @@ struct MonthSheet {
         self.mostMissedHabit = MonthStats.mostMissed(tallies).flatMap { habitsByID[$0] }
         self.todayIndex = dayIndex[startOfToday]
     }
+
+    /// What the month's done extra tasks added, and how many there were.
+    var extrasTotal: Int { extraTasks.map(\.earnedPence).reduce(0, +) }
+    var extrasDone: Int { extraTasks.filter(\.isDone).count }
 
     /// Days after today can't be ticked.
     func isLocked(dayIndex: Int) -> Bool {

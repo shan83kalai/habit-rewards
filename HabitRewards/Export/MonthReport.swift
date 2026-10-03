@@ -9,9 +9,19 @@ nonisolated struct MonthReport: Sendable, Equatable {
         let statuses: [HabitStatus]
     }
 
+    struct TaskLine: Sendable, Equatable {
+        let dayNumber: Int
+        let title: String
+        let rewardPence: Int
+        let isDone: Bool
+    }
+
     struct ChildPage: Sendable, Equatable {
         let name: String
         let habits: [HabitLine]
+        /// What each day's done extra tasks added; 0 for none.
+        let extrasByDay: [Int]
+        let extraTasks: [TaskLine]
         /// `nil` for days after today.
         let dayScores: [Int?]
         let runningTotals: [Int?]
@@ -37,6 +47,13 @@ extension MonthReport {
             ChildPage(
                 name: name,
                 habits: sheet.rows.map { HabitLine(title: $0.habit.title, statuses: $0.statuses) },
+                extrasByDay: sheet.extrasByDay,
+                extraTasks: sheet.extraTasks.map { task in
+                    TaskLine(
+                        dayNumber: sheet.days.firstIndex { $0 == task.date }.map { $0 + 1 } ?? 0,
+                        title: task.title, rewardPence: task.rewardPence, isDone: task.isDone
+                    )
+                },
                 dayScores: sheet.dayScores,
                 runningTotals: sheet.runningTotals,
                 totalPence: sheet.total,
@@ -51,7 +68,8 @@ extension MonthReport {
 
 extension MonthReport {
     /// The month laid out like the spreadsheet: a block per child with habits as rows and days
-    /// as columns, then the day-score and running-total rows. Money is a plain number ("1.75").
+    /// as columns, then the day-score and running-total rows, and any extra tasks. Money is a plain
+    /// number ("1.75").
     nonisolated var csv: String {
         var rows: [[String]] = [["Habit Rewards", title]]
         for child in children {
@@ -61,11 +79,20 @@ extension MonthReport {
             for habit in child.habits {
                 rows.append([habit.title] + habit.statuses.map(Self.csvSymbol))
             }
+            if !child.extraTasks.isEmpty {
+                rows.append(["Extras (\(currencySymbol))"] + child.extrasByDay.map { $0 > 0 ? csvMoney($0) : "" })
+            }
             rows.append(["Day score (\(currencySymbol))"] + child.dayScores.map { $0.map(csvMoney) ?? "" })
             rows.append(["Running total (\(currencySymbol))"] + child.runningTotals.map { $0.map(csvMoney) ?? "" })
             rows.append(["Month total (\(currencySymbol))", csvMoney(child.totalPence)])
             rows.append(["Perfect days", String(child.perfectDays)])
             rows.append(["Best streak (days)", String(child.bestStreak)])
+            if !child.extraTasks.isEmpty {
+                rows.append(["Extra task", "Day", "Reward (\(currencySymbol))", "Done"])
+                for task in child.extraTasks {
+                    rows.append([task.title, String(task.dayNumber), csvMoney(task.rewardPence), task.isDone ? "✓" : ""])
+                }
+            }
         }
         return rows.map { $0.map(Self.csvField).joined(separator: ",") }.joined(separator: "\r\n") + "\r\n"
     }

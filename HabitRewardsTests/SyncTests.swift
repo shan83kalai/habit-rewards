@@ -64,9 +64,11 @@ final class SyncTests: SwiftDataTestCase {
         let rules = MonthRules(year: 2026, month: 10, rules: ScoringRules(rewardPence: 60, penaltyPence: 80))
         phoneA.insert(rules)
         let payout = Payout.record(475, to: children[0], for: CalendarMonth(year: 2026, month: 9), paidOn: day(1), in: phoneA)
+        let task = ExtraTask.add("Wash the car", rewardPence: 100, for: children[1], on: day(3), calendar: london, in: phoneA)
+        task.isDone = true
         try phoneA.save()
 
-        let sent = records(children, habits, [rules, entry, payout])
+        let sent = records(children, habits, [rules, entry, payout, task])
         let phoneB = try makeContext()
         try SyncApplier.apply(sent, deletions: [], to: phoneB, calendar: london)
 
@@ -92,6 +94,16 @@ final class SyncTests: SwiftDataTestCase {
         XCTAssertEqual(payoutB.amountPence, 475)
         XCTAssertEqual(payoutB.paidOn, day(1))
         XCTAssertTrue(payoutB.child === childrenB[0])
+
+        let taskB = try XCTUnwrap(phoneB.fetch(FetchDescriptor<ExtraTask>()).first)
+        XCTAssertEqual(taskB.id, task.id)
+        XCTAssertEqual(taskB.title, "Wash the car")
+        XCTAssertEqual(taskB.rewardPence, 100)
+        XCTAssertEqual(taskB.day, "2026-10-03")
+        XCTAssertEqual(taskB.date, london.startOfDay(for: day(3)))
+        XCTAssertTrue(taskB.isDone)
+        XCTAssertEqual(taskB.createdAt, task.createdAt)
+        XCTAssertTrue(taskB.child === childrenB[1])
     }
 
     func testRecordsKeepCloudKitsSystemFields() throws {
@@ -198,6 +210,30 @@ final class SyncTests: SwiftDataTestCase {
         XCTAssertEqual(entryB.child?.id, children[0].id)
         XCTAssertEqual(entryB.habit?.id, habits[0].id)
         XCTAssertEqual(try phoneB.fetch(FetchDescriptor<Payout>()).first?.child?.id, children[0].id)
+    }
+
+    func testExtraTasksThatArriveBeforeTheirChildAreLinkedLater() throws {
+        let (phoneA, children, _) = try makePhone()
+        let task = ExtraTask.add("Wash the car", rewardPence: 100, for: children[0], on: day(3), calendar: london, in: phoneA)
+        let phoneB = try makeContext()
+
+        try SyncApplier.apply(records([task]), deletions: [], to: phoneB, calendar: london)
+        let orphan = try XCTUnwrap(phoneB.fetch(FetchDescriptor<ExtraTask>()).first)
+        XCTAssertNil(orphan.child)
+
+        try SyncApplier.apply(records([children[0]]), deletions: [], to: phoneB, calendar: london)
+        XCTAssertEqual(orphan.child?.id, children[0].id)
+    }
+
+    func testExtraTasksUploadAndCanBeDeleted() throws {
+        let (context, children, _) = try makePhone()
+        let task = ExtraTask.add("Wash the car", rewardPence: 100, for: children[0], on: day(3), calendar: london, in: context)
+        try context.save()
+        XCTAssertEqual(try SyncApplier.pendingRecordNames(in: context), [task.cloudRecordName])
+        XCTAssertTrue(try SyncApplier.allRecordNames(in: context).contains(task.cloudRecordName))
+
+        try SyncApplier.apply([], deletions: [task.cloudRecordName], to: context, calendar: london)
+        XCTAssertEqual(try context.fetchCount(FetchDescriptor<ExtraTask>()), 0)
     }
 
     func testDeletionsRemoveTheRecord() throws {

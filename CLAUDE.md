@@ -20,6 +20,9 @@ Family iPhone app replacing the habits spreadsheet. The full spec is in [PLAN.md
   - New installs start with "Child 1", "Child 2" and six general habits. Existing phones keep their own data.
   - Money shows in the phone's own currency.
   - `docs/` holds the privacy, support and home pages, served by GitHub Pages.
+- Version 1.1, 2026-10-03:
+  - Phase 1: habits for some children only.
+  - Phase 2: extra tasks, one-off rewarded tasks for a child on a day.
 - `RootView` holds the Today / Month / Summary / Settings tabs. It owns "today" and the `ParentLock`.
 
 ## Layout and identifiers
@@ -83,7 +86,7 @@ App Store screenshots: `AppStore/Screenshots/`, made by `AppStoreScreenshots` (U
 - Write and change `DayEntry` only through `DayEntry.upsert(...)`. It keeps the (child, day, habit) key unique and inserts before setting relationships. Day strings ("2026-10-02") come from `DayEntry.dayString` and `DayEntry.date(fromDayString:)`; the key and the backup both use them.
 - SwiftData status is stored as `statusRaw: String` so it works in `#Predicate`.
 - Sync bookkeeping: every model is `Syncable`, with `modifiedAt`, `syncedAt` and `cloudSystemFields`. **Every local write must call `model.touch()` and then `LocalChanges.post()` after saving.** Deletions pass their `cloudRecordName`s to `LocalChanges.post(deleted:)`. Records arriving from iCloud go through `SyncApplier.apply`, which never touches or posts, so they aren't sent back out.
-- Record names are fixed (`child-<id>`, `habit-<id>`, `rules-YYYY-MM`, `entry_<child>_<day>_<habit>`, `payout-<id>`), so both phones write the same record and never duplicate. The `DayEntry.key` unique constraint stays: sync goes through our own code, not SwiftData's CloudKit mirroring.
+- Record names are fixed (`child-<id>`, `habit-<id>`, `rules-YYYY-MM`, `entry_<child>_<day>_<habit>`, `payout-<id>`, `extra-<id>`), so both phones write the same record and never duplicate. The `DayEntry.key` unique constraint stays: sync goes through our own code, not SwiftData's CloudKit mirroring.
 - `CKSyncEngine` only fetches at launch, on return to the foreground, or on a push. Simulators never get pushes, and a phone that stays open can miss them. So `FamilySync.syncNow()` (pull to refresh, `.active`, and every 60 seconds while open) also reads the Family zone directly with `recordZoneChanges`, keeping its own `pollToken`.
 - `UIBackgroundModes` (remote-notification) and `CKSharingSupported` must be in `HabitRewards/Info.plist`. The `INFOPLIST_KEY_UIBackgroundModes` build setting is ignored, and without the key CloudKit pushes never arrive.
 - Release: `PrivacyInfo.xcprivacy` declares no tracking and no collected data, plus `UserDefaults` (reason CA92.1). `ITSAppUsesNonExemptEncryption = NO` is set, so uploads skip the export-compliance question.
@@ -91,6 +94,14 @@ App Store screenshots: `AppStore/Screenshots/`, made by `AppStoreScreenshots` (U
 - Tests that touch SwiftData subclass `SwiftDataTestCase`. It keeps every container it opens alive for the whole test.
 - Each screen's derived numbers live in a plain struct next to its views (e.g. `Views/Today/DayBoard.swift`), so they can be unit-tested without SwiftUI.
 - Haptics fire on a per-tap `HabitTap` value, not on status changes, so switching child, day or month stays silent. Save taps with `ModelContext.saveStatus(...)` and attach `.habitTapFeedback(...)`.
+- Extra tasks (`ExtraTask`) are one-off tasks for one child on one day, with their own reward fixed when set.
+  - A task stores `day` ("2026-10-03") for sync and backups, and `date` (the start of that day) for fetching a month.
+  - Done adds the reward to that day; not done costs nothing.
+  - A day's score is the habits' score floored at £0, then the done extras on top (`ScoringEngine.dayScore(_:extrasPence:)`). Perfect days and streaks count habits only.
+  - `DayBoard` and `MonthSheet` take `extraTasks`, so the Today screen, month grid, summary, widget and exports all agree.
+  - Setting, changing or removing a task needs `ParentLock.authorize(reason: .extraTask)`. Ticking one works like a habit (`allowChange`).
+  - Tasks are added for the day shown on the Today screen, so only today or earlier.
+  - Synced as record type `ExtraTask`, linked to the child by `childID` like `Payout`. Backups are version 3.
 - A month can have several `Payout`s, so a top-up after late ticks doesn't overwrite the first payment. `PayoutStatus` works out paid, still owed and overpaid.
 - Rules: a month uses its own `MonthRules` row, otherwise the latest earlier one, otherwise `.standard` (see `MonthRules.rules(for:from:)`). `RootView` calls `ensureSnapshot` at launch and whenever a new month starts. Settings can edit only this month and next.
 - Parent lock: Settings, any change to an earlier month (`ParentLock.allowChange`), and Mark as paid / Undo all go through `ParentLock.authorize`. It locks on `.background`, not `.inactive`, because the Face ID prompt itself makes the app inactive. In UI tests, `-uiTesting` approves every check and adding `-denyParentUnlock` refuses them.

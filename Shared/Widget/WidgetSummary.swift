@@ -32,10 +32,11 @@ extension WidgetSummary {
         let children = try context.fetch(FetchDescriptor<Child>(predicate: #Predicate { !$0.isArchived }, sortBy: [SortDescriptor(\.sortOrder)]))
         let habits = try context.fetch(FetchDescriptor<Habit>(sortBy: [SortDescriptor(\.sortOrder)]))
         let entries = try context.fetch(FetchDescriptor<DayEntry>(predicate: #Predicate { $0.date >= start && $0.date < end }))
+        let extras = try context.fetch(FetchDescriptor<ExtraTask>(predicate: #Predicate { $0.date >= start && $0.date < end }))
         let rules = MonthRules.rules(for: CalendarMonth(containing: now, calendar: calendar), from: try context.fetch(FetchDescriptor<MonthRules>()))
 
         self.init(children: children.map { child in
-            let board = DayBoard(child: child, day: now, habits: habits, entries: entries, rules: rules, calendar: calendar)
+            let board = DayBoard(child: child, day: now, habits: habits, entries: entries, extraTasks: extras, rules: rules, calendar: calendar)
             return ChildLine(
                 id: child.id, name: child.name, colourHex: child.colourHex,
                 todayPence: board.dayPence, monthPence: board.monthPence,

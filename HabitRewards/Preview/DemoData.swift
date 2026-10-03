@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// A lived-in family for the App Store screenshots: two children, last month complete and one of
-/// them paid, and this month up to today. Only loaded when UI tests launch the app with `-demoData`.
+/// them paid, this month up to today, and a few extra tasks. Only loaded when UI tests launch the app with `-demoData`.
 enum DemoData {
     static func load(into context: ModelContext, today: Date = .now, calendar: Calendar = .current) throws {
         try SeedData.seedIfNeeded(context)
@@ -39,6 +39,18 @@ enum DemoData {
             if childIndex == 0 {
                 _ = Payout.record(lastMonthTotal, to: child, for: lastMonth, in: context)
             }
+        }
+
+        // A few extra tasks: two of Leo's last month (still to be paid), and one each today.
+        let september = lastMonth.days(in: calendar)
+        for (title, pence, dayIndex) in [("Tidy the garden", 200, 11), ("Help with the shopping", 100, 19)] where children.count > 1 {
+            ExtraTask.add(title, rewardPence: pence, for: children[1], on: september[dayIndex], calendar: calendar, in: context).isDone = true
+        }
+        if let maya = children.first {
+            ExtraTask.add("Wash the car", rewardPence: 100, for: maya, on: today, calendar: calendar, in: context).isDone = true
+        }
+        if children.count > 1 {
+            ExtraTask.add("Help make dinner", rewardPence: 100, for: children[1], on: today, calendar: calendar, in: context)
         }
         try context.save()
     }

@@ -8,6 +8,7 @@ enum AppSchema {
         MonthRules.self,
         DayEntry.self,
         Payout.self,
+        ExtraTask.self,
     ]
 
     /// The app's store, in the App Group folder shared with the widget. CloudKit is off: syncing

@@ -71,6 +71,7 @@ extension ParentLock {
         static var earlierMonth: String { String(localized: "Unlock to change an earlier month.") }
         static var payment: String { String(localized: "Unlock to record a payment.") }
         static var settings: String { String(localized: "Unlock parent settings.") }
+        static var extraTask: String { String(localized: "Unlock to set or change extra tasks.") }
     }
 
     /// Runs `change` straight away for days in this month; for an earlier month, only once a parent has unlocked.

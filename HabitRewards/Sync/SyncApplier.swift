@@ -35,6 +35,11 @@ enum SyncApplier {
                 guard let id = uuid(in: name, after: kind) else { continue }
                 let payout = try find(Payout.self, id: id, in: context) ?? insertPayout(id: id, in: context)
                 merge(record, into: payout)
+            case .extra:
+                guard let id = uuid(in: name, after: kind) else { continue }
+                let task = try find(ExtraTask.self, id: id, in: context) ?? insertExtraTask(id: id, in: context)
+                merge(record, into: task)
+                task.date = DayEntry.date(fromDayString: task.day, calendar: calendar) ?? task.date
             }
         }
         for name in deletions {
@@ -57,7 +62,7 @@ enum SyncApplier {
         model.syncedAt = arrived
     }
 
-    /// Links ticks and payments that arrived before their child or habit.
+    /// Links ticks, payments and extra tasks that arrived before their child or habit.
     private static func linkOrphans(in context: ModelContext) throws {
         let children = Dictionary(uniqueKeysWithValues: try context.fetch(FetchDescriptor<Child>()).map { ($0.id, $0) })
         let habits = Dictionary(uniqueKeysWithValues: try context.fetch(FetchDescriptor<Habit>()).map { ($0.id, $0) })
@@ -68,6 +73,9 @@ enum SyncApplier {
         }
         for payout in try context.fetch(FetchDescriptor<Payout>()) where payout.child == nil {
             payout.child = payout.childID.flatMap { children[$0] }
+        }
+        for task in try context.fetch(FetchDescriptor<ExtraTask>()) where task.child == nil {
+            task.child = task.childID.flatMap { children[$0] }
         }
     }
 
@@ -81,6 +89,7 @@ enum SyncApplier {
         names += try context.fetch(FetchDescriptor<MonthRules>(predicate: #Predicate { $0.modifiedAt > $0.syncedAt })).map(\.cloudRecordName)
         names += try context.fetch(FetchDescriptor<DayEntry>(predicate: #Predicate { $0.modifiedAt > $0.syncedAt })).map(\.cloudRecordName)
         names += try context.fetch(FetchDescriptor<Payout>(predicate: #Predicate { $0.modifiedAt > $0.syncedAt })).map(\.cloudRecordName)
+        names += try context.fetch(FetchDescriptor<ExtraTask>(predicate: #Predicate { $0.modifiedAt > $0.syncedAt })).map(\.cloudRecordName)
         return names
     }
 
@@ -117,6 +126,7 @@ enum SyncApplier {
     static func deleteEverything(in context: ModelContext) throws {
         for entry in try context.fetch(FetchDescriptor<DayEntry>()) { context.delete(entry) }
         for payout in try context.fetch(FetchDescriptor<Payout>()) { context.delete(payout) }
+        for task in try context.fetch(FetchDescriptor<ExtraTask>()) { context.delete(task) }
         for rules in try context.fetch(FetchDescriptor<MonthRules>()) { context.delete(rules) }
         for child in try context.fetch(FetchDescriptor<Child>()) { context.delete(child) }
         for habit in try context.fetch(FetchDescriptor<Habit>()) { context.delete(habit) }
@@ -131,6 +141,7 @@ enum SyncApplier {
         case .child: return try uuid(in: name, after: kind).flatMap { try find(Child.self, id: $0, in: context) }
         case .habit: return try uuid(in: name, after: kind).flatMap { try find(Habit.self, id: $0, in: context) }
         case .payout: return try uuid(in: name, after: kind).flatMap { try find(Payout.self, id: $0, in: context) }
+        case .extra: return try uuid(in: name, after: kind).flatMap { try find(ExtraTask.self, id: $0, in: context) }
         case .rules: return try month(in: name).flatMap { try MonthRules.saved(for: $0, in: context) }
         case .entry: return try context.fetch(FetchDescriptor<DayEntry>()).first { $0.cloudRecordName == name }
         }
@@ -143,6 +154,7 @@ enum SyncApplier {
         all += try context.fetch(FetchDescriptor<MonthRules>()) as [any CloudRecordConvertible]
         all += try context.fetch(FetchDescriptor<DayEntry>()) as [any CloudRecordConvertible]
         all += try context.fetch(FetchDescriptor<Payout>()) as [any CloudRecordConvertible]
+        all += try context.fetch(FetchDescriptor<ExtraTask>()) as [any CloudRecordConvertible]
         return all
     }
 
@@ -156,6 +168,10 @@ enum SyncApplier {
 
     private static func find(_ type: Payout.Type, id: UUID, in context: ModelContext) throws -> Payout? {
         try context.fetch(FetchDescriptor<Payout>(predicate: #Predicate { $0.id == id })).first
+    }
+
+    private static func find(_ type: ExtraTask.Type, id: UUID, in context: ModelContext) throws -> ExtraTask? {
+        try context.fetch(FetchDescriptor<ExtraTask>(predicate: #Predicate { $0.id == id })).first
     }
 
     private static func findEntry(key: String, in context: ModelContext) throws -> DayEntry? {
@@ -182,6 +198,12 @@ enum SyncApplier {
         return payout
     }
 
+    private static func insertExtraTask(id: UUID, in context: ModelContext) -> ExtraTask {
+        let task = insert(ExtraTask(title: "", rewardPence: 0), in: context)
+        task.id = id
+        return task
+    }
+
     private static func insert<Model: PersistentModel>(_ model: Model, in context: ModelContext) -> Model {
         context.insert(model)
         return model
@@ -202,7 +224,7 @@ enum SyncApplier {
         switch SyncRecordKind(recordName: record.recordID.recordName) {
         case .child, .habit: 0
         case .rules: 1
-        case .entry, .payout: 2
+        case .entry, .payout, .extra: 2
         case nil: 3
         }
     }

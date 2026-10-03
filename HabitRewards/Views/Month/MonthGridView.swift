@@ -14,6 +14,8 @@ struct MonthGridView: View {
     @Query private var savedRules: [MonthRules]
     /// Every child's entries for the month; `MonthSheet` narrows them down.
     @Query private var monthEntries: [DayEntry]
+    /// Likewise every child's extra tasks for the month.
+    @Query private var monthExtras: [ExtraTask]
 
     @State private var lastTap: HabitTap?
     @State private var saveFailed = false
@@ -26,6 +28,7 @@ struct MonthGridView: View {
         let start = interval.start
         let end = interval.end
         _monthEntries = Query(filter: #Predicate<DayEntry> { $0.date >= start && $0.date < end })
+        _monthExtras = Query(filter: #Predicate<ExtraTask> { $0.date >= start && $0.date < end })
     }
 
     var body: some View {
@@ -42,6 +45,9 @@ struct MonthGridView: View {
                 tap(row, dayIndex: dayIndex, in: sheet)
             }
             .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+            if !sheet.extraTasks.isEmpty {
+                ExtraTaskList(tasks: sheet.extraTasks)
+            }
         }
         .habitTapFeedback(lastTap, saveFailed: $saveFailed)
     }
@@ -50,7 +56,7 @@ struct MonthGridView: View {
         let rules = MonthRules.rules(for: month, from: savedRules)
         return MonthSheet(
             child: child, month: month, today: navigation.today, habits: habits,
-            entries: monthEntries, rules: rules, calendar: navigation.calendar
+            entries: monthEntries, extraTasks: monthExtras, rules: rules, calendar: navigation.calendar
         )
     }
 

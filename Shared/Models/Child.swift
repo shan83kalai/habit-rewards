@@ -21,6 +21,9 @@ final class Child: Syncable {
     @Relationship(deleteRule: .cascade, inverse: \Payout.child)
     var payouts: [Payout]? = []
 
+    @Relationship(deleteRule: .cascade, inverse: \ExtraTask.child)
+    var extraTasks: [ExtraTask]? = []
+
     init(name: String, colourHex: String, sortOrder: Int) {
         self.name = name
         self.colourHex = colourHex

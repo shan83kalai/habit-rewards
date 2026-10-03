@@ -228,6 +228,36 @@ final class HabitRewardsUITests: XCTestCase {
     }
 
     @MainActor
+    func testParentCanSetAnExtraTaskAndTickItDone() throws {
+        let app = launchApp()
+        let add = app.buttons["Add extra task"]
+        scroll(app, until: add)
+        add.tap()
+
+        let name = app.textFields["extraTaskName"]
+        XCTAssertTrue(name.waitForExistence(timeout: 3))
+        name.tap()
+        name.typeText("Wash the car")
+        app.buttons["£2.00"].tap()
+        attachScreenshot(of: app, named: "11 New extra task")
+        app.buttons["Save"].tap()
+
+        let task = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Wash the car")).firstMatch
+        scroll(app, until: task)
+        XCTAssertEqual(task.value as? String, "Not done")
+        task.tap()
+        XCTAssertEqual(task.value as? String, "Done")
+        // No habits ticked, so today is the task's reward alone.
+        XCTAssertTrue(element(in: app, labelContaining: "Today, £2.00").waitForExistence(timeout: 2))
+        attachScreenshot(of: app, named: "12 Extra task done")
+
+        app.tabBars.buttons["Month"].tap()
+        let listed = element(in: app, labelContaining: "Wash the car, £2.00")
+        scroll(app, until: listed)
+        XCTAssertEqual(listed.value as? String, "Done")
+    }
+
+    @MainActor
     func testParentCanGiveAHabitToOneChild() throws {
         let app = launchApp()
         app.tabBars.buttons["Settings"].tap()

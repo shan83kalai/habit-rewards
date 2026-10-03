@@ -3,8 +3,8 @@ import SwiftData
 
 /// Everything in the app as one JSON file, for backing up through the Files app and restoring.
 nonisolated struct Backup: Codable, Equatable, Sendable {
-    /// 2 added `HabitRecord.childIDs`.
-    static let currentVersion = 2
+    /// 2 added `HabitRecord.childIDs`; 3 added `extraTasks`.
+    static let currentVersion = 3
 
     struct ChildRecord: Codable, Equatable, Sendable {
         var id: UUID
@@ -47,12 +47,23 @@ nonisolated struct Backup: Codable, Equatable, Sendable {
         var paidOn: Date?
     }
 
+    struct ExtraTaskRecord: Codable, Equatable, Sendable {
+        var id: UUID
+        var childID: UUID
+        var title: String
+        var rewardPence: Int
+        /// "yyyy-MM-dd", like `EntryRecord.day`.
+        var day: String
+        var isDone: Bool
+        var createdAt: Date
+    }
+
     enum RestoreError: Error, Equatable {
         /// Not JSON, or not a Habit Rewards backup.
         case unreadable
         /// Made by a newer version of the app than this one.
         case newerVersion
-        /// A tick or payment points at a child or habit that isn't in the file.
+        /// A tick, payment or extra task points at a child or habit that isn't in the file.
         case brokenReference
         /// A day that doesn't exist, e.g. "2026-13-45".
         case badDay
@@ -65,6 +76,8 @@ nonisolated struct Backup: Codable, Equatable, Sendable {
     var monthRules: [RulesRecord]
     var entries: [EntryRecord]
     var payouts: [PayoutRecord]
+    /// Missing in files from before version 3.
+    var extraTasks: [ExtraTaskRecord]?
 
     var tickCount: Int {
         entries.filter { $0.status != .unset }.count
@@ -99,6 +112,10 @@ extension Backup {
             guard let childID = payout.child?.id else { return nil }
             return PayoutRecord(childID: childID, year: payout.year, month: payout.month, amountPence: payout.amountPence, paidOn: payout.paidOn)
         }
+        let extraTasks = try context.fetch(FetchDescriptor<ExtraTask>(sortBy: [SortDescriptor(\.date), SortDescriptor(\.createdAt)])).compactMap { task -> ExtraTaskRecord? in
+            guard let childID = task.child?.id ?? task.childID else { return nil }
+            return ExtraTaskRecord(id: task.id, childID: childID, title: task.title, rewardPence: task.rewardPence, day: task.day, isDone: task.isDone, createdAt: task.createdAt)
+        }
         return Backup(
             version: currentVersion,
             exportedAt: now,
@@ -112,7 +129,8 @@ extension Backup {
                 RulesRecord(year: $0.year, month: $0.month, rewardPence: $0.rewardPence, penaltyPence: $0.penaltyPence)
             }.sorted { ($0.year, $0.month) < ($1.year, $1.month) },
             entries: entries.sorted { ($0.day, $0.childID.uuidString, $0.habitID.uuidString) < ($1.day, $1.childID.uuidString, $1.habitID.uuidString) },
-            payouts: payouts
+            payouts: payouts,
+            extraTasks: extraTasks
         )
     }
 
@@ -126,6 +144,12 @@ extension Backup {
         else { throw RestoreError.brokenReference }
         let days = try entries.map { entry in
             guard let date = DayEntry.date(fromDayString: entry.day, calendar: calendar) else { throw RestoreError.badDay }
+            return date
+        }
+        let tasks = extraTasks ?? []
+        guard tasks.allSatisfy({ childIDs.contains($0.childID) }) else { throw RestoreError.brokenReference }
+        let taskDays = try tasks.map { task in
+            guard let date = DayEntry.date(fromDayString: task.day, calendar: calendar) else { throw RestoreError.badDay }
             return date
         }
 
@@ -162,6 +186,17 @@ extension Backup {
                 payout.child = childrenByID[record.childID]
                 payout.childID = record.childID
             }
+            for (record, date) in zip(tasks, taskDays) {
+                let task = ExtraTask(title: record.title, rewardPence: record.rewardPence)
+                task.id = record.id
+                task.day = record.day
+                task.date = date
+                task.isDone = record.isDone
+                task.createdAt = record.createdAt
+                context.insert(task)
+                task.child = childrenByID[record.childID]
+                task.childID = record.childID
+            }
             try context.save()
         } catch {
             context.rollback()
@@ -172,6 +207,7 @@ extension Backup {
     private func deleteEverything(in context: ModelContext) throws {
         for entry in try context.fetch(FetchDescriptor<DayEntry>()) { context.delete(entry) }
         for payout in try context.fetch(FetchDescriptor<Payout>()) { context.delete(payout) }
+        for task in try context.fetch(FetchDescriptor<ExtraTask>()) { context.delete(task) }
         for rules in try context.fetch(FetchDescriptor<MonthRules>()) { context.delete(rules) }
         for child in try context.fetch(FetchDescriptor<Child>()) { context.delete(child) }
         for habit in try context.fetch(FetchDescriptor<Habit>()) { context.delete(habit) }

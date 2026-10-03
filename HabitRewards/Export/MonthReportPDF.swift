@@ -42,6 +42,9 @@ private struct ReportPage: View {
                 stat("Best streak", "\(child.bestStreak)")
             }
             table
+            if !child.extraTasks.isEmpty {
+                extraTasks
+            }
             Spacer(minLength: 0)
             Text("Habit Rewards · \(report.title)")
                 .font(.system(size: 9))
@@ -73,6 +76,14 @@ private struct ReportPage: View {
                     }
                 }
             }
+            if !child.extraTasks.isEmpty {
+                GridRow {
+                    cell("Extras (\(report.currencySymbol))", alignment: .leading)
+                    ForEach(child.extrasByDay.indices, id: \.self) { index in
+                        cell(child.extrasByDay[index] > 0 ? report.csvMoney(child.extrasByDay[index]) : "")
+                    }
+                }
+            }
             GridRow {
                 cell("Day score (\(report.currencySymbol))", alignment: .leading).bold()
                 ForEach(child.dayScores.indices, id: \.self) { cell(child.dayScores[$0].map(report.csvMoney) ?? "") }
@@ -84,6 +95,17 @@ private struct ReportPage: View {
         }
         .font(.system(size: 8))
         .overlay { Rectangle().strokeBorder(.gray.opacity(0.5), lineWidth: 0.5) }
+    }
+
+    private var extraTasks: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("Extra tasks").font(.system(size: 11, weight: .semibold))
+            ForEach(child.extraTasks.indices, id: \.self) { index in
+                let task = child.extraTasks[index]
+                Text("\(task.dayNumber) · \(task.title) · \(Money.format(task.rewardPence, currencyCode: report.currencyCode))\(task.isDone ? " ✓" : "")")
+                    .font(.system(size: 9))
+            }
+        }
     }
 
     private func cell(_ text: String, alignment: Alignment = .center) -> some View {

@@ -34,6 +34,12 @@ nonisolated struct ScoringEngine: Sendable {
         return dayScore(done: done, missed: missed)
     }
 
+    /// A day with extra tasks: the habits' score, floored at 0, plus the done tasks' rewards. The
+    /// rewards go on after the floor, so a bad day for habits can't cancel a task the child did.
+    func dayScore(_ statuses: some Sequence<HabitStatus>, extrasPence: Int) -> Int {
+        dayScore(statuses) + extrasPence
+    }
+
     /// Sums the month's day scores. Each day is floored at 0 before it is added.
     func monthTotal<Days: Sequence>(_ days: Days) -> Int where Days.Element: Sequence<HabitStatus> {
         days.reduce(0) { $0 + dayScore($1) }

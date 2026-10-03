@@ -32,6 +32,7 @@ final class BackupTests: SwiftDataTestCase {
         try MonthRules.set(.standard, for: october.previous, in: context)
         try MonthRules.set(ScoringRules(rewardPence: 60, penaltyPence: 80), for: october, in: context)
         Payout.record(300, to: children[0], for: october.previous, paidOn: day(10, 1), in: context)
+        ExtraTask.add("Wash the car", rewardPence: 100, for: children[1], on: day(10, 1), calendar: london, in: context).isDone = true
         let archived = Child(name: "Cousin", colourHex: "#3B82F6", sortOrder: 2)
         archived.isArchived = true
         context.insert(archived)
@@ -44,12 +45,13 @@ final class BackupTests: SwiftDataTestCase {
         let habits = try context.fetch(FetchDescriptor<Habit>(sortBy: [SortDescriptor(\.sortOrder)]))
         let entries = try context.fetch(FetchDescriptor<DayEntry>())
         let rules = try context.fetch(FetchDescriptor<MonthRules>())
+        let extras = try context.fetch(FetchDescriptor<ExtraTask>())
         var totals: [String: Int] = [:]
         for child in children {
             for month in [october.previous, october] {
                 let sheet = MonthSheet(
                     child: child, month: month, today: day(10, 31), habits: habits, entries: entries,
-                    rules: MonthRules.rules(for: month, from: rules), calendar: london
+                    extraTasks: extras, rules: MonthRules.rules(for: month, from: rules), calendar: london
                 )
                 totals["\(child.name) \(month.month)"] = sheet.total
             }
@@ -95,6 +97,13 @@ final class BackupTests: SwiftDataTestCase {
         XCTAssertTrue(payout.child === children[0])
         XCTAssertEqual(payout.paidOn, day(10, 1))
         XCTAssertTrue(try fresh.fetch(FetchDescriptor<DayEntry>()).allSatisfy { $0.child != nil && $0.habit != nil })
+
+        let task = try XCTUnwrap(fresh.fetch(FetchDescriptor<ExtraTask>()).first)
+        XCTAssertEqual(task.title, "Wash the car")
+        XCTAssertEqual(task.rewardPence, 100)
+        XCTAssertEqual(task.day, "2026-10-01")
+        XCTAssertTrue(task.isDone)
+        XCTAssertTrue(task.child === children[1])
     }
 
     func testRestoreReplacesWhatWasThere() throws {
@@ -165,6 +174,18 @@ final class BackupTests: SwiftDataTestCase {
         XCTAssertEqual(json["version"] as? Int, Backup.currentVersion)
         let entries = try XCTUnwrap(json["entries"] as? [[String: Any]])
         XCTAssertTrue(entries.contains { $0["day"] as? String == "2026-09-30" && $0["status"] as? String == "done" })
+    }
+
+    func testVersionTwoBackupWithoutExtraTasksRestores() throws {
+        let data = try Backup.make(from: try makeFamily(), calendar: london).encoded()
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        json["version"] = 2
+        json.removeValue(forKey: "extraTasks")
+        let fresh = try makeContext()
+        try Backup.decode(try JSONSerialization.data(withJSONObject: json)).restore(into: fresh, calendar: london)
+
+        XCTAssertEqual(try fresh.fetchCount(FetchDescriptor<ExtraTask>()), 0)
+        XCTAssertEqual(try fresh.fetchCount(FetchDescriptor<Child>()), 3)
     }
 
     func testVersionOneBackupRestoresEveryHabitForEveryone() throws {

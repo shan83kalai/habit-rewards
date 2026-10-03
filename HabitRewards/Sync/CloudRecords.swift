@@ -2,13 +2,14 @@ import CloudKit
 import Foundation
 import SwiftData
 
-/// The five record types in the family zone, told apart by the prefix of their record name.
+/// The record types in the family zone, told apart by the prefix of their record name.
 enum SyncRecordKind: String, CaseIterable {
     case child = "child-"
     case habit = "habit-"
     case rules = "rules-"
     case entry = "entry_"
     case payout = "payout-"
+    case extra = "extra-"
 
     init?(recordName: String) {
         guard let kind = Self.allCases.first(where: { recordName.hasPrefix($0.rawValue) }) else { return nil }
@@ -22,6 +23,7 @@ enum SyncRecordKind: String, CaseIterable {
         case .rules: "MonthRules"
         case .entry: "DayEntry"
         case .payout: "Payout"
+        case .extra: "ExtraTask"
         }
     }
 }
@@ -119,6 +121,29 @@ extension DayEntry: CloudRecordConvertible {
 
     func decode(from record: CKRecord) {
         statusRaw = (record["status"] as? String).flatMap(HabitStatus.init(rawValue:))?.rawValue ?? statusRaw
+    }
+}
+
+extension ExtraTask: CloudRecordConvertible {
+    static let kind = SyncRecordKind.extra
+
+    func encode(into record: CKRecord) {
+        record["childID"] = childID?.uuidString ?? child?.id.uuidString
+        record["title"] = title
+        record["rewardPence"] = rewardPence
+        record["day"] = day
+        record["isDone"] = isDone
+        record["createdAt"] = createdAt
+    }
+
+    /// The caller sets `date` from `day`, with the phone's calendar.
+    func decode(from record: CKRecord) {
+        childID = (record["childID"] as? String).flatMap(UUID.init(uuidString:)) ?? childID
+        title = record["title"] as? String ?? title
+        rewardPence = record["rewardPence"] as? Int ?? rewardPence
+        day = record["day"] as? String ?? day
+        isDone = record["isDone"] as? Bool ?? isDone
+        createdAt = record["createdAt"] as? Date ?? createdAt
     }
 }
 

@@ -40,6 +40,9 @@ struct ChildSummaryCard: View {
                     detail: sheet.mostMissedHabit.map { inflected("Missed ^[\(sheet.count(.missed, for: $0)) time](inflect: true)") },
                     empty: "Nothing missed"
                 )
+                if !sheet.extraTasks.isEmpty {
+                    ExtrasHighlight(totalPence: sheet.extrasTotal, done: sheet.extrasDone, set: sheet.extraTasks.count)
+                }
             }
 
             Divider()
@@ -91,6 +94,34 @@ private struct HabitHighlight: View {
                 } else {
                     Text(empty).foregroundStyle(.subtle)
                 }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// What the month's extra tasks added, in the same style as the habit highlights.
+private struct ExtrasHighlight: View {
+    let totalPence: Int
+    let done: Int
+    let set: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "star.fill")
+                .font(.title3)
+                .foregroundStyle(.tint)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Extra tasks")
+                    .font(.caption)
+                    .foregroundStyle(.subtle)
+                Text(Money.format(totalPence))
+                    .font(.body.weight(.medium))
+                    .monospacedDigit()
+                Text("\(done) of \(set) done")
+                    .font(.caption)
+                    .foregroundStyle(.subtle)
             }
         }
         .accessibilityElement(children: .combine)

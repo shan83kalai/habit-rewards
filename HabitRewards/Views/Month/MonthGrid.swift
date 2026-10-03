@@ -1,7 +1,8 @@
 import SwiftData
 import SwiftUI
 
-/// Habits as rows and days as columns, with day-score and running-total rows underneath.
+/// Habits as rows and days as columns, then the extra tasks' money (in months that have any),
+/// day-score and running-total rows.
 /// The habit names stay put while the days scroll sideways, like a frozen spreadsheet column.
 struct MonthGrid: View {
     let sheet: MonthSheet
@@ -45,6 +46,9 @@ struct MonthGrid: View {
                 .font(.caption)
                 .frame(width: labelWidth, height: cellSize, alignment: .leading)
             }
+            if !sheet.extraTasks.isEmpty {
+                label(String(localized: "Extras"))
+            }
             label(String(localized: "Day")).bold()
             label(String(localized: "Running"))
         }
@@ -67,6 +71,9 @@ struct MonthGrid: View {
                 MonthGridCell(habit: row.habit, day: day, status: row.statuses[index], isLocked: isLocked, size: cellSize) {
                     tap(row, index)
                 }
+            }
+            if !sheet.extraTasks.isEmpty {
+                MoneyCell(pence: sheet.extrasByDay[index] > 0 ? sheet.extrasByDay[index] : nil, label: String(localized: "Extras"), size: cellSize)
             }
             MoneyCell(pence: sheet.dayScores[index], label: String(localized: "Day score"), size: cellSize).bold()
             MoneyCell(pence: sheet.runningTotals[index], label: String(localized: "Running total"), size: cellSize)

@@ -54,7 +54,7 @@ The app icon is drawn by `Tools/make_icon.swift`: the gradient, the tick, and a 
 
 ## Release (TestFlight)
 
-App Store Connect app: "Habit Rewards Family". Build 1.0 (1) was uploaded 2026-10-02, 1.0 (2) on 2026-10-03 (generic starter data, any currency), and 1.0 (3) on 2026-10-03 (star icon with currency coins to choose, Settings label fix). For each new upload, raise `CURRENT_PROJECT_VERSION` in all 8 configurations first; App Store Connect refuses a repeated build number. Then:
+App Store Connect app: "Habit Rewards Family". Build 1.0 (1) was uploaded 2026-10-02, 1.0 (2) on 2026-10-03 (generic starter data, any currency), 1.0 (3) on 2026-10-03 (star icon with currency coins to choose, Settings label fix), and 1.1 (4) on 2026-10-03 (habits for some children only; the Habit.childIDs field was deployed to Production first). For each new upload, raise `CURRENT_PROJECT_VERSION` in all 8 configurations first; App Store Connect refuses a repeated build number. Then:
 
 ```bash
 xcodebuild archive -project HabitRewards.xcodeproj -scheme HabitRewards -configuration Release -destination 'generic/platform=iOS' -archivePath /tmp/HabitRewards.xcarchive -allowProvisioningUpdates
